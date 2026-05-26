@@ -1,0 +1,22 @@
+# Local data and generated outputs
+data/
+outputs/
+runs/
+weights/
+models/
+checkpoints/
+tmp/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Large model/export artifacts
+*.pt
+*.pth
+*.onnx
+*.engine
+*.tflite
+*.mlpackage
+

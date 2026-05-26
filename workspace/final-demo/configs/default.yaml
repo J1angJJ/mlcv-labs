@@ -1,0 +1,35 @@
+project:
+  name: puffin-counting-final
+  seed: 42
+
+paths:
+  image_dir: data/images
+  annotation_dir: data/annotations
+  output_dir: outputs
+  upload_dir: data/uploads
+  weights_dir: weights
+
+dataset:
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+  class_name: puffin
+  fallback_class_name: bird
+
+inference:
+  model_path: weights/yolo26n.pt
+  conf: 0.25
+  iou: 0.5
+  image_size: 640
+  device: auto
+
+evaluation:
+  ground_truth_csv: data/annotations/image_counts.csv
+  predictions_csv: outputs/detection/detection_counts.csv
+  output_dir: outputs/evaluation
+
+backend:
+  host: 127.0.0.1
+  port: 8000
+  save_uploads: true
+

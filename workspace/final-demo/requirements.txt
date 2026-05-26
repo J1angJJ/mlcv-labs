@@ -1,0 +1,16 @@
+numpy
+opencv-python
+matplotlib
+pandas
+scipy
+Pillow
+ultralytics
+scikit-learn
+scikit-image
+seaborn
+tqdm
+pyyaml
+tensorboard
+fastapi
+uvicorn
+python-multipart
