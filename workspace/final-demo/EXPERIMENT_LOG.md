@@ -409,6 +409,120 @@ backend/app.py
 
 ## 11. 下一步计划
 
+## 11. 实验 exp001_yolo26n_baseline
+
+日期：
+
+```text
+2026-05-26
+```
+
+模型：
+
+```text
+yolo26n.pt
+```
+
+数据配置：
+
+```text
+configs/seabirds_v6_local.yaml
+```
+
+训练入口：
+
+```text
+scripts/train_yolo26n_baseline.ps1
+```
+
+第一次运行时使用了 Ultralytics CLI：
+
+```powershell
+conda run -n cv-train yolo detect train model=yolo26n.pt data=configs/seabirds_v6_local.yaml project=runs/train name=exp001_yolo26n_baseline
+```
+
+这次训练成功完成，但输出路径被 Ultralytics CLI 拼成：
+
+```text
+runs/detect/runs/train/exp001_yolo26n_baseline
+```
+
+训练完成后已整理到：
+
+```text
+runs/train/exp001_yolo26n_baseline
+```
+
+随后训练脚本已改为调用：
+
+```text
+scripts/train_yolo.py
+```
+
+这样后续输出路径由 Python API 控制，避免再次出现 `runs/detect/runs/train` 嵌套。
+
+实际训练参数来自 Ultralytics 默认值：
+
+```text
+epochs: 100
+batch: 16
+imgsz: 640
+optimizer: auto
+seed: 0
+pretrained: true
+amp: true
+```
+
+训练耗时：
+
+```text
+2885.27 s，约 48.1 min
+```
+
+最终 epoch 指标：
+
+```text
+precision(B): 0.82642
+recall(B): 0.81357
+mAP50(B): 0.83341
+mAP50-95(B): 0.62897
+```
+
+最高 mAP50 出现在 epoch 50：
+
+```text
+mAP50(B): 0.83648
+mAP50-95(B): 0.59935
+```
+
+关键输出：
+
+```text
+runs/train/exp001_yolo26n_baseline/weights/best.pt
+runs/train/exp001_yolo26n_baseline/weights/last.pt
+runs/train/exp001_yolo26n_baseline/results.csv
+runs/train/exp001_yolo26n_baseline/results.png
+runs/train/exp001_yolo26n_baseline/confusion_matrix.png
+runs/train/exp001_yolo26n_baseline/confusion_matrix_normalized.png
+runs/train/exp001_yolo26n_baseline/BoxPR_curve.png
+runs/train/exp001_yolo26n_baseline/BoxF1_curve.png
+```
+
+观察：
+
+- 本机 RTX 4060 Laptop GPU 可以使用默认 `batch=16` 完成 YOLO26n 训练。
+- TensorBoard 未生成 event 文件，因此当前训练过程可视化主要依赖 `results.csv` 和 `results.png`。
+- 第一轮检测指标已经可用，但 final 任务还需要进一步计算 puffin counting 的 MAE、RMSE 和 bias。
+
+下一步：
+
+1. 在 valid/test split 上用 `best.pt` 推理并导出 puffin 预测数量。
+2. 计算 count MAE、RMSE、bias。
+3. 查看 confusion matrix 和预测可视化，整理失败案例。
+4. 训练 YOLO11n 或 YOLOv8n baseline。
+
+## 12. 下一步计划
+
 第一阶段训练：
 
 1. 使用 `yolo26n.pt` 进行预训练权重微调。
@@ -437,7 +551,7 @@ backend/app.py
 2. 让 FastAPI 后端支持图片上传和返回检测计数。
 3. 如有必要，再考虑 ONNX 或 TensorRT。
 
-## 12. 待记录内容
+## 13. 待记录内容
 
 后续每次训练都需要追加一节，至少记录：
 
@@ -466,3 +580,92 @@ exp001_yolo26n_baseline
 exp002_yolo11n_baseline
 exp003_yolov8n_baseline
 ```
+
+## 14. 实验 exp001 test 推理与 counting 评估
+
+日期：
+
+```text
+2026-05-26
+```
+
+模型权重：
+
+```text
+runs/train/exp001_yolo26n_baseline/weights/best.pt
+```
+
+推理脚本：
+
+```text
+scripts/predict_yolo_counts.py
+scripts/predict_exp001_test.ps1
+```
+
+评估脚本：
+
+```text
+scripts/evaluate_counting.py
+scripts/evaluate_exp001_test.ps1
+```
+
+推理命令：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\predict_exp001_test.ps1
+```
+
+评估命令：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\evaluate_exp001_test.ps1
+```
+
+推理输出：
+
+```text
+outputs/predictions/exp001_yolo26n_baseline/test/test_predictions.csv
+outputs/predictions/exp001_yolo26n_baseline/test/test_detections.csv
+outputs/predictions/exp001_yolo26n_baseline/test/visuals/
+```
+
+评估输出：
+
+```text
+outputs/evaluation/exp001_yolo26n_baseline/test/count_metrics.csv
+outputs/evaluation/exp001_yolo26n_baseline/test/per_image_errors.csv
+outputs/evaluation/exp001_yolo26n_baseline/test/prediction_vs_ground_truth.png
+```
+
+test counting 指标：
+
+```text
+num_images: 84
+MAE: 0.1190476190
+RMSE: 0.5976143047
+mean_relative_error: 0.1191176471
+bias: -0.1190476190
+```
+
+误差最大的样本：
+
+```text
+DJI_20220726115422_0304_Z_JPG.rf.830e85ff1aeb2fa9c366ad16eaf0caf7.jpg
+ground_truth=4, prediction=0, error=-4
+
+DJI_20220726115400_0293_Z_JPG.rf.1a9deb01ac219b8835aa9f89ddf90007.jpg
+ground_truth=8, prediction=5, error=-3
+
+1127_maine-puffins-1000x644_jpeg.rf.21367ecf0d8ee509f74ef00728fab9a3.jpg
+ground_truth=5, prediction=3, error=-2
+
+Screenshot-2023-04-10-at-8-48-07-PM_png.rf.4a6fca1fab16bb899af2a706ce16de78.jpg
+ground_truth=4, prediction=3, error=-1
+```
+
+观察：
+
+- 84 张 test 图中，80 张计数完全正确。
+- 4 张存在计数误差。
+- `bias` 为负，说明主要失败模式是漏检。
+- 下一步应查看这 4 张图的 `*_pred.jpg`，从中选择至少 3 张作为报告失败案例。

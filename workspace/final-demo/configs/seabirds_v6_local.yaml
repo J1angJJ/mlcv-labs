@@ -1,0 +1,21 @@
+path: R:/mlcv-labs/workspace/final-demo/data/Seabirds.v6i.yolo26
+train: train/images
+val: valid/images
+test: test/images
+
+nc: 7
+names:
+  0: fulmar
+  1: gannet
+  2: guillemot
+  3: kittiwake
+  4: puffin
+  5: razorbill
+  6: shag
+
+roboflow:
+  workspace: seabirdai-hv30y
+  project: seabirds
+  version: 6
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/seabirdai-hv30y/seabirds/dataset/6
