@@ -1,0 +1,40 @@
+# Text normalization
+* text=auto eol=lf
+
+# Source and document text files
+*.md text eol=lf working-tree-encoding=UTF-8
+*.editorconfig text eol=lf working-tree-encoding=UTF-8
+*.txt text eol=lf working-tree-encoding=UTF-8
+*.py text eol=lf working-tree-encoding=UTF-8
+*.ipynb text eol=lf working-tree-encoding=UTF-8
+*.tex text eol=lf working-tree-encoding=UTF-8
+*.bib text eol=lf working-tree-encoding=UTF-8
+*.cls text eol=lf working-tree-encoding=UTF-8
+*.sty text eol=lf working-tree-encoding=UTF-8
+*.csv text eol=lf working-tree-encoding=UTF-8
+*.json text eol=lf working-tree-encoding=UTF-8
+*.yaml text eol=lf working-tree-encoding=UTF-8
+*.yml text eol=lf working-tree-encoding=UTF-8
+
+# Binary assets and courseware
+*.pdf binary -eol
+*.ppt binary -eol
+*.pptx binary -eol
+*.png binary -eol
+*.jpg binary -eol
+*.jpeg binary -eol
+*.gif binary -eol
+*.webp binary -eol
+*.ico binary -eol
+*.zip binary -eol
+*.7z binary -eol
+*.gz binary -eol
+*.tar binary -eol
+*.mp4 binary -eol
+*.mov binary -eol
+*.avi binary -eol
+*.pth binary -eol
+*.pt binary -eol
+*.onnx binary -eol
+*.npy binary -eol
+*.npz binary -eol
