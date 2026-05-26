@@ -1,299 +1,181 @@
-# Puffin Counting Final：项目指南
+# Puffin Counting Final
 
-这个目录是课程 final 的工作区。README 用于快速说明当前工程状态、数据集、脚本、训练结果和下一步；完整过程记录见 `EXPERIMENT_LOG.md`。README 和实验记录都不是最终提交报告，后续英文报告会单独编写。
+本目录是课程 final 作业的工程工作区，目标是构建一个基于目标检测的 puffin 自动计数原型：用户上传图片，后端调用训练好的 YOLO 模型检测 puffin，并返回计数、检测框和可视化结果。
 
-任务书：
-
-```text
-Jens Rittscher-2026-05-cv-assignment.docx
-```
-
-## 当前状态
-
-已经完成：
-
-- 应用场景：上传图片后，在后端完成 puffin 检测与计数。
-- 部署边界：暂不考虑手机端部署，前端只负责上传和展示，模型推理全部在后端。
-- 本机环境：`cv-train`，Python 3.11，PyTorch CUDA，Ultralytics，FiftyOne。
-- 数据集：Roboflow Seabirds v6，YOLO26 格式。
-- 数据审计：类别统计、随机画框抽查、零星漏标修复。
-- 第一轮训练：YOLO26n baseline 已完成。
-- 第一轮 test 推理：已用 `best.pt` 对 test split 推理。
-- 第一轮 counting 评估：已得到 MAE、RMSE、bias。
-- 工程脚本：训练、推理、计数评估、标注抽查、补标、PowerShell UTF-8 设置。
-
-尚未完成：
-
-- YOLO11 / YOLOv8 baseline 训练。
-- 失败案例详细分析与报告素材整理。
-- 真实模型推理接入 FastAPI 后端。
-- 最终英文报告。
+当前项目包含数据集整理、模型训练与评估、失败案例分析、FastAPI 后端和轻量前端原型。详细实验过程记录见 `EXPERIMENT_LOG.md`；更细的内部工作笔记见 `README.internal.md`。
 
 ## 数据集
 
-当前主数据集：
+数据集使用 Roboflow Universe 上的 SeabirdAI / Seabirds v6，格式为 YOLO26。
 
 ```text
-Roboflow Universe - SeabirdAI / Seabirds
-Version: 6
-Format: YOLO26
+Dataset: Roboflow Seabirds v6
+Format: YOLO
 License: CC BY 4.0
-Local path: data/Seabirds.v6i.yolo26
+Classes: fulmar, gannet, guillemot, kittiwake, puffin, razorbill, shag
 ```
 
-数据集页面：
+项目采用原始 train / valid / test 划分，并保留 7 类进行训练；推理和计数阶段只统计 `puffin` 类。
+
+数据集没有提交到 Git。默认本地路径为：
 
 ```text
-https://universe.roboflow.com/seabirdai-hv30y/seabirds
+data/Seabirds.v6i.yolo26/
 ```
 
-类别：
+## 模型训练与评估
+
+本项目采用检测式计数：先检测每个 puffin 的 bounding box，再统计目标框数量。
+
+已完成两个模型实验：
 
 ```text
-0: fulmar
-1: gannet
-2: guillemot
-3: kittiwake
-4: puffin
-5: razorbill
-6: shag
+exp001_yolo26n_baseline
+exp002_yolo11n_baseline
 ```
 
-当前策略：
+在 test split 上的计数评估结果：
 
-- 保留 7 类训练。
-- 推理和计数时只统计 `puffin`。
-- 使用原始 train / valid / test split。
-- 使用预训练 YOLO 权重微调，不从零训练。
+| Experiment | Model | MAE | RMSE | Bias |
+|---|---|---:|---:|---:|
+| exp001 | YOLO26n | 0.11905 | 0.59761 | -0.11905 |
+| exp002 | YOLO11n | 0.09524 | 0.46291 | 0.00000 |
 
-## 数据审计结果
-
-统计脚本：
+当前后端默认使用 YOLO11n 的最佳权重：
 
 ```text
-scripts/dataset_class_stats.py
+runs/train/exp002_yolo11n_baseline/weights/best.pt
 ```
 
-命令：
+训练输出和权重不提交到 Git。
+
+## 样例结果
+
+复杂场景中 23 个目标全部正确识别：
+
+![复杂场景成功样例](report_assets/browser_screenshots/01_success_complex_23_targets.png)
+
+无人机超远景航拍样例，目标很小，两个模型都容易低估或计数不稳定：
+
+![无人机超远景失败样例](report_assets/browser_screenshots/02_failure_case_001_drone_far_both_under_count.png)
+
+近景重叠样例，最终采用的 YOLO11n 能正确检出全部目标：
+
+![近景重叠成功样例](report_assets/browser_screenshots/06_case_005_near_overlap_yolo11n_success.png)
+
+更多截图位于 `report_assets/browser_screenshots/`。
+
+## 前后端原型
+
+后端使用 FastAPI，提供：
+
+```text
+GET  /health
+GET  /model
+POST /predict
+```
+
+`POST /predict` 接收图片文件，返回：
+
+```text
+count
+boxes
+mean_confidence
+all_detections
+elapsed_ms
+figure_url
+```
+
+前端是一个轻量单页页面，用于上传图片并展示后端返回的计数和预测图，不在浏览器端运行模型。
+
+启动后端：
 
 ```powershell
-conda run -n cv-train python scripts/dataset_class_stats.py --dataset-root data/Seabirds.v6i.yolo26 --output-dir outputs/dataset_audit --count-class puffin
+cd R:\mlcv-labs\workspace\final-demo
+powershell -ExecutionPolicy Bypass -File scripts\run_backend.ps1
 ```
 
-初次统计：
+然后打开：
 
 ```text
-train: images=1465, labels=1465, boxes=4746
-  puffin boxes=912, puffin images=249
-
-valid: images=145, labels=145, boxes=452
-  puffin boxes=96, puffin images=20
-
-test: images=84, labels=84, boxes=244
-  puffin boxes=38, puffin images=17
+http://127.0.0.1:8000/
 ```
 
-人工抽查发现 valid 中一张图存在明显漏标，已使用 `scripts/add_yolo_box.py` 补充右下角一只 puffin 的 box。修正后：
+后端 smoke test：
 
-```text
-valid total boxes: 452 -> 453
-valid puffin boxes: 96 -> 97
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\smoke_test_backend.ps1
 ```
 
-## 工程结构
+## 项目结构
 
 ```text
-configs/
-  default.yaml
-  seabirds_v6_local.yaml        # 本地 YOLO 数据配置
-
-schemas/
-  image_counts_template.csv
-  points_template.csv
-  detections_template.csv
-
-scripts/
-  dataset_class_stats.py        # YOLO 数据集类别统计、label 检查、puffin count 导出
-  sample_yolo_boxes.py          # 随机抽样画框，用于标注质量抽查
-  add_yolo_box.py               # 给 YOLO label 追加一个像素框，并生成修正预览
-  train_yolo.py                 # Ultralytics Python API 训练入口
-  train_yolo26n_baseline.ps1    # exp001 训练入口
-  predict_yolo_counts.py        # YOLO 推理并导出每张图 puffin count
-  predict_exp001_test.ps1       # exp001 test 推理入口
-  evaluate_counting.py          # count MAE/RMSE/bias 评估
-  evaluate_exp001_test.ps1      # exp001 test counting 评估入口
-  tensorboard_runs.ps1          # TensorBoard 入口
-  setup_powershell_utf8.ps1     # PowerShell UTF-8 控制台设置
-
 backend/
-  app.py                        # FastAPI 上传接口骨架
+  app.py                         # FastAPI 后端
+
+frontend/
+  index.html                     # 上传与结果展示页面
+  styles.css
+  app.js
+
+configs/
+  default.yaml                   # 后端和推理配置
+  seabirds_v6_local.yaml         # 本地 YOLO 数据配置
 
 src/puffin_counting/
-  annotations.py
-  config.py
-  dataset.py
-  density.py
-  detection.py
-  evaluation.py
-  io_utils.py
-  model_interface.py
+  yolo_predictor.py              # YOLO 推理封装
+  model_interface.py             # 预测结果接口
+  evaluation.py                  # 计数误差评估
+  dataset.py                     # 数据校验
+  annotations.py                 # 数据划分工具
+  density.py                     # 密度图辅助工具
 
-run_counting.py
-EXPERIMENT_LOG.md
+scripts/
+  train_yolo.py                  # 通用 YOLO 训练入口
+  train_yolo26n_baseline.ps1
+  train_yolo11n_baseline.ps1
+  predict_yolo_counts.py
+  evaluate_counting.py
+  prepare_failure_cases.py
+  run_backend.ps1
+  smoke_test_backend.py
+
+report_assets/
+  browser_screenshots/           # 报告用前端截图与失败案例截图
+
+EXPERIMENT_LOG.md                # 实验记录
+README.internal.md               # 内部工作指南
 ```
 
 ## 常用命令
 
-训练 YOLO26n baseline：
+训练 YOLO11n baseline：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\train_yolo26n_baseline.ps1
+powershell -ExecutionPolicy Bypass -File scripts\train_yolo11n_baseline.ps1
 ```
 
-test split 推理：
+对 test split 推理：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\predict_exp001_test.ps1
+powershell -ExecutionPolicy Bypass -File scripts\predict_exp002_test.ps1
 ```
 
-test counting 评估：
+计算 counting 指标：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\evaluate_exp001_test.ps1
+powershell -ExecutionPolicy Bypass -File scripts\evaluate_exp002_test.ps1
 ```
 
-随机抽查 puffin 标注：
+整理失败案例素材：
 
 ```powershell
-conda run -n cv-train python scripts/sample_yolo_boxes.py --dataset-root data/Seabirds.v6i.yolo26 --split valid --count 12 --seed 42 --classes puffin --output-dir outputs/label_audit/puffin_valid
+powershell -ExecutionPolicy Bypass -File scripts\prepare_failure_cases_exp001_exp002.ps1
 ```
 
-追加一个 YOLO 标注框：
+## Git 说明
 
-```powershell
-conda run -n cv-train python scripts/add_yolo_box.py --dataset-root data/Seabirds.v6i.yolo26 --split valid --image image_name.jpg --class-name puffin --xyxy X1 Y1 X2 Y2 --output-preview outputs/label_audit/fixes/image_name_preview.jpg
-```
-
-## exp001 训练结果
-
-实验：
-
-```text
-exp001_yolo26n_baseline
-```
-
-模型：
-
-```text
-yolo26n.pt
-```
-
-结果目录：
-
-```text
-runs/train/exp001_yolo26n_baseline/
-```
-
-关键输出：
-
-```text
-weights/best.pt
-weights/last.pt
-results.csv
-results.png
-confusion_matrix.png
-confusion_matrix_normalized.png
-BoxPR_curve.png
-BoxF1_curve.png
-val_batch*_pred.jpg
-```
-
-最终 epoch 指标：
-
-```text
-epoch: 100
-time: 2885.27 s
-precision(B): 0.82642
-recall(B): 0.81357
-mAP50(B): 0.83341
-mAP50-95(B): 0.62897
-```
-
-说明：
-
-- TensorBoard 未生成 event 文件，训练过程可视化主要看 `results.csv` 和 `results.png`。
-- 本机 RTX 4060 Laptop GPU 可以使用默认 `batch=16` 完成 YOLO26n 训练。
-- 训练输出 `runs/` 被 Git 忽略。
-
-## exp001 Counting 评估
-
-推理输出：
-
-```text
-outputs/predictions/exp001_yolo26n_baseline/test/test_predictions.csv
-outputs/predictions/exp001_yolo26n_baseline/test/test_detections.csv
-outputs/predictions/exp001_yolo26n_baseline/test/visuals/
-```
-
-评估输出：
-
-```text
-outputs/evaluation/exp001_yolo26n_baseline/test/count_metrics.csv
-outputs/evaluation/exp001_yolo26n_baseline/test/per_image_errors.csv
-outputs/evaluation/exp001_yolo26n_baseline/test/prediction_vs_ground_truth.png
-```
-
-test counting 指标：
-
-```text
-num_images: 84
-MAE: 0.1190476190
-RMSE: 0.5976143047
-mean_relative_error: 0.1191176471
-bias: -0.1190476190
-```
-
-当前判断：
-
-- 84 张 test 图中，80 张计数完全正确。
-- 4 张存在计数误差。
-- `bias` 为负，主要问题是漏检而不是误检。
-
-失败案例候选：
-
-```text
-DJI_20220726115422_0304_Z_JPG.rf.830e85ff1aeb2fa9c366ad16eaf0caf7.jpg
-ground_truth=4, prediction=0, error=-4
-
-DJI_20220726115400_0293_Z_JPG.rf.1a9deb01ac219b8835aa9f89ddf90007.jpg
-ground_truth=8, prediction=5, error=-3
-
-1127_maine-puffins-1000x644_jpeg.rf.21367ecf0d8ee509f74ef00728fab9a3.jpg
-ground_truth=5, prediction=3, error=-2
-
-Screenshot-2023-04-10-at-8-48-07-PM_png.rf.4a6fca1fab16bb899af2a706ce16de78.jpg
-ground_truth=4, prediction=3, error=-1
-```
-
-下一步应优先人工查看这些 `*_pred.jpg`，整理至少 3 个失败案例。
-
-## 后续优先级
-
-1. 查看 4 张失败案例候选的预测可视化，判断漏检原因。
-2. 选择至少 3 张作为 final 报告失败案例。
-3. 训练 YOLO11n 或 YOLOv8n baseline，形成模型对比。
-4. 将 `best.pt` 接入后端模型接口。
-5. 撰写英文 final report。
-
-暂不做：
-
-- 手机端部署。
-- ONNX / TensorRT。
-- 模型压缩。
-
-## Git 与大文件保护
-
-`workspace/final-demo/.gitignore` 已忽略：
+以下内容不会提交：
 
 ```text
 data/
@@ -302,28 +184,6 @@ runs/
 weights/
 models/
 checkpoints/
-tmp/
-*.pt
-*.pth
-*.onnx
-*.engine
-*.tflite
-*.mlpackage
 ```
 
-当前数据集、审计图片、训练输出、推理输出和模型权重都不会进入 Git。
-
-commit 前建议检查：
-
-```powershell
-git status --short --untracked-files=all workspace/final-demo
-git status --ignored --short workspace/final-demo/data workspace/final-demo/outputs workspace/final-demo/runs
-```
-
-看到以下内容说明数据和输出被正确忽略：
-
-```text
-!! workspace/final-demo/data/
-!! workspace/final-demo/outputs/
-!! workspace/final-demo/runs/
-```
+精选报告截图位于 `report_assets/`，会随仓库提交。

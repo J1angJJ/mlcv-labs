@@ -17,9 +17,9 @@ dataset:
   fallback_class_name: bird
 
 inference:
-  model_path: weights/yolo26n.pt
+  model_path: runs/train/exp002_yolo11n_baseline/weights/best.pt
   conf: 0.25
-  iou: 0.5
+  iou: 0.7
   image_size: 640
   device: auto
 
@@ -32,4 +32,5 @@ backend:
   host: 127.0.0.1
   port: 8000
   save_uploads: true
-
+  prediction_output_dir: outputs/backend_predictions
+  frontend_dir: frontend

@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Puffin Counting</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="toolbar">
+        <div>
+          <h1>Puffin Counting</h1>
+          <p>Upload an image and run backend YOLO inference.</p>
+        </div>
+        <div class="status" id="status">Checking backend...</div>
+      </section>
+
+      <section class="workspace">
+        <form class="upload-panel" id="upload-form">
+          <label class="drop-zone" for="image-input">
+            <input id="image-input" name="file" type="file" accept="image/*" />
+            <span>Choose image</span>
+            <strong id="file-name">No file selected</strong>
+          </label>
+          <button id="submit-button" type="submit">Predict</button>
+        </form>
+
+        <section class="result-grid">
+          <div class="image-panel">
+            <h2>Input</h2>
+            <img id="input-preview" alt="" />
+          </div>
+          <div class="image-panel">
+            <h2>Prediction</h2>
+            <img id="prediction-preview" alt="" />
+          </div>
+        </section>
+
+        <section class="summary-panel">
+          <div class="metric">
+            <span>Count</span>
+            <strong id="count-value">-</strong>
+          </div>
+          <div class="metric">
+            <span>Mean confidence</span>
+            <strong id="confidence-value">-</strong>
+          </div>
+          <div class="metric">
+            <span>Elapsed</span>
+            <strong id="elapsed-value">-</strong>
+          </div>
+          <div class="metric">
+            <span>Total detections</span>
+            <strong id="detections-value">-</strong>
+          </div>
+        </section>
+
+        <section class="boxes-panel">
+          <h2>Detected puffins</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Confidence</th>
+                <th>Box xyxy</th>
+              </tr>
+            </thead>
+            <tbody id="boxes-body"></tbody>
+          </table>
+        </section>
+      </section>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>

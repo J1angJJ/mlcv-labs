@@ -669,3 +669,469 @@ ground_truth=4, prediction=3, error=-1
 - 4 张存在计数误差。
 - `bias` 为负，说明主要失败模式是漏检。
 - 下一步应查看这 4 张图的 `*_pred.jpg`，从中选择至少 3 张作为报告失败案例。
+
+## 15. 实验 exp002_yolo11n_baseline
+
+日期：
+
+```text
+2026-05-26
+```
+
+模型：
+
+```text
+yolo11n.pt
+```
+
+数据配置：
+
+```text
+configs/seabirds_v6_local.yaml
+```
+
+训练入口：
+
+```text
+scripts/train_yolo11n_baseline.ps1
+```
+
+训练输出最初仍被 Ultralytics 写入：
+
+```text
+runs/detect/runs/train/exp002_yolo11n_baseline
+```
+
+原因分析：
+
+```text
+Ultralytics detect task 会以 runs/detect 作为默认 save root。
+传入相对 project=runs/train 时，内部会在默认 root 下再次拼接该相对路径，
+因此得到 runs/detect/runs/train/exp002_yolo11n_baseline。
+```
+
+修正：
+
+```text
+已将 exp002 输出移动到 runs/train/exp002_yolo11n_baseline。
+已修改 scripts/train_yolo.py，使 data 和 project 都解析为项目根目录下的绝对路径。
+后续训练应直接输出到 runs/train/<experiment_name>。
+```
+
+实际训练参数来自 Ultralytics 默认值：
+
+```text
+epochs: 100
+batch: 16
+imgsz: 640
+optimizer: auto
+seed: 0
+pretrained: true
+amp: true
+```
+
+训练耗时：
+
+```text
+2279.97 s，约 38.0 min
+```
+
+最终 epoch 指标：
+
+```text
+precision(B): 0.87038
+recall(B): 0.81385
+mAP50(B): 0.85236
+mAP50-95(B): 0.62863
+```
+
+最高 mAP50 出现在 epoch 95：
+
+```text
+mAP50(B): 0.85929
+mAP50-95(B): 0.63022
+```
+
+推理输出：
+
+```text
+outputs/predictions/exp002_yolo11n_baseline/test/test_predictions.csv
+outputs/predictions/exp002_yolo11n_baseline/test/test_detections.csv
+outputs/predictions/exp002_yolo11n_baseline/test/visuals/
+```
+
+评估输出：
+
+```text
+outputs/evaluation/exp002_yolo11n_baseline/test/count_metrics.csv
+outputs/evaluation/exp002_yolo11n_baseline/test/per_image_errors.csv
+outputs/evaluation/exp002_yolo11n_baseline/test/prediction_vs_ground_truth.png
+```
+
+test counting 指标：
+
+```text
+num_images: 84
+MAE: 0.0952380952
+RMSE: 0.4629100499
+mean_relative_error: 0.1338235294
+bias: 0.0
+```
+
+与 exp001 对比：
+
+```text
+exp001 YOLO26n: MAE=0.11905, RMSE=0.59761, bias=-0.11905
+exp002 YOLO11n: MAE=0.09524, RMSE=0.46291, bias=0.0
+```
+
+误差最大的样本：
+
+```text
+DJI_20220726115400_0293_Z_JPG.rf.1a9deb01ac219b8835aa9f89ddf90007.jpg
+ground_truth=8, prediction=11, error=3
+
+1127_maine-puffins-1000x644_jpeg.rf.21367ecf0d8ee509f74ef00728fab9a3.jpg
+ground_truth=5, prediction=3, error=-2
+
+DJI_20220726115422_0304_Z_JPG.rf.830e85ff1aeb2fa9c366ad16eaf0caf7.jpg
+ground_truth=4, prediction=2, error=-2
+
+AtlanticPuffin10_jpeg.rf.6d3aa2d97c83dde15afde529752e5020.jpg
+ground_truth=1, prediction=2, error=1
+```
+
+观察：
+
+- YOLO11n 的 detection mAP50 和 counting MAE 都略优于 YOLO26n。
+- YOLO11n 的 overall bias 为 0，但存在过检和漏检互相抵消。
+- YOLO26n 更偏向漏检。
+- 后续失败案例分析应同时查看 exp001 与 exp002 在相同图片上的表现差异。
+
+## 16. 失败案例素材整理
+
+日期：
+
+```text
+2026-05-26
+```
+
+脚本：
+
+```text
+scripts/prepare_failure_cases.py
+scripts/prepare_failure_cases_exp001_exp002.ps1
+```
+
+命令：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\prepare_failure_cases_exp001_exp002.ps1
+```
+
+输出目录：
+
+```text
+outputs/failure_cases/exp001_vs_exp002/
+```
+
+输出文件：
+
+```text
+comparison_summary.csv
+case_manifest.csv
+case_001_both_under_count/
+case_002_under_to_over/
+case_003_both_under_count/
+case_004_exp002_new_error/
+case_005_exp002_fixed_exp001_error/
+```
+
+每个 case 目录包含：
+
+```text
+original.jpg
+exp001_yolo26n_pred.jpg
+exp002_yolo11n_pred.jpg
+notes.md
+```
+
+当前整理出的失败案例：
+
+```text
+case_001_both_under_count
+image: DJI_20220726115422_0304_Z_JPG.rf.830e85ff1aeb2fa9c366ad16eaf0caf7.jpg
+ground_truth=4, YOLO26n=0, YOLO11n=2
+
+case_002_under_to_over
+image: DJI_20220726115400_0293_Z_JPG.rf.1a9deb01ac219b8835aa9f89ddf90007.jpg
+ground_truth=8, YOLO26n=5, YOLO11n=11
+
+case_003_both_under_count
+image: 1127_maine-puffins-1000x644_jpeg.rf.21367ecf0d8ee509f74ef00728fab9a3.jpg
+ground_truth=5, YOLO26n=3, YOLO11n=3
+
+case_004_exp002_new_error
+image: AtlanticPuffin10_jpeg.rf.6d3aa2d97c83dde15afde529752e5020.jpg
+ground_truth=1, YOLO26n=1, YOLO11n=2
+
+case_005_exp002_fixed_exp001_error
+image: Screenshot-2023-04-10-at-8-48-07-PM_png.rf.4a6fca1fab16bb899af2a706ce16de78.jpg
+ground_truth=4, YOLO26n=3, YOLO11n=4
+```
+
+下一步：
+
+```text
+人工查看每个 case 的 original 和两个模型预测图，在 notes.md 中补充中文观察。
+后续英文报告从这些 notes 中选择至少 3 个失败案例。
+```
+
+## 17. 人工失败案例观察
+
+日期：
+
+```text
+2026-05-26
+```
+
+观察摘要：
+
+```text
+case_001 和 case_002 都是无人机超远景航拍。
+目标非常小，人眼也难以分辨。
+在这类图中，能检测到更多疑似目标的模型更接近真实计数，但也更容易过检。
+
+case_003 和 case_005 都是近景重叠场景。
+case_003 中两个模型都漏掉了重叠较高的部分目标。
+case_005 中 YOLO11n 全部检出，而 YOLO26n 漏检一个目标。
+
+case_004 是单目标近景特写。
+YOLO26n 正确检出一个目标，YOLO11n 多检一个目标。
+```
+
+初步结论：
+
+```text
+1. YOLO26n 在当前实验中整体更保守，主要错误是漏检。
+2. YOLO11n 在 test counting 指标上更好，但更敏感，可能在单目标近景中产生过检。
+3. 最主要的失败模式有两类：
+   - 无人机超远景小目标漏检或计数不稳定。
+   - 近景重叠个体被合并或漏检。
+4. 报告中可选择 case_001、case_002、case_003 作为主要失败案例，case_004/case_005 用于对比模型灵敏度差异。
+```
+
+## 18. 后端推理原型
+
+日期：
+
+```text
+2026-05-26
+```
+
+目标：
+
+```text
+将最终候选模型 YOLO11n best.pt 接入 FastAPI 后端。
+前端只上传图片，后端完成模型推理并返回 puffin count 和 boxes。
+```
+
+参考课程 demo：
+
+```text
+Code/code_10/puffin_counting_demo/main.py
+```
+
+可借鉴部分：
+
+```text
+按目标类别筛选 YOLO detection boxes。
+统计目标类别数量。
+保存带框可视化图片。
+```
+
+未直接复用部分：
+
+```text
+课程 demo 没有后端服务结构，因此 FastAPI 上传、配置加载、响应 JSON 和 predictor 接口均在本项目中重新实现。
+```
+
+新增/修改文件：
+
+```text
+backend/app.py
+src/puffin_counting/model_interface.py
+src/puffin_counting/yolo_predictor.py
+scripts/run_backend.ps1
+scripts/smoke_test_backend.py
+scripts/smoke_test_backend.ps1
+configs/default.yaml
+```
+
+默认后端模型：
+
+```text
+runs/train/exp002_yolo11n_baseline/weights/best.pt
+```
+
+接口：
+
+```text
+GET  /health
+GET  /model
+POST /predict
+```
+
+`POST /predict` 返回：
+
+```text
+count
+boxes
+mean_confidence
+all_detections
+elapsed_ms
+figure_path
+model_path
+target_class
+```
+
+smoke test 命令：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\smoke_test_backend.ps1
+```
+
+smoke test 结果：
+
+```text
+health: {'status': 'ok', 'model_loaded': True, 'target_class': 'puffin'}
+sample image: 1127_maine-puffins-1000x644_jpeg.rf.21367ecf0d8ee509f74ef00728fab9a3.jpg
+count: 3
+all_detections: 3
+elapsed_ms: 693.68
+```
+
+依赖变更：
+
+```text
+Installed fastapi, uvicorn, python-multipart in cv-train.
+pip check: No broken requirements found.
+```
+
+环境快照：
+
+```text
+本轮按用户此前要求暂不更新 R:\ai-context 环境快照，后续由用户统一处理。
+```
+
+## 19. 前端上传原型
+
+日期：
+
+```text
+2026-05-26
+```
+
+目标：
+
+```text
+实现一个非重点的轻量前端，用于展示 deployment prototype。
+前端只负责上传图片和展示结果，不做任何模型推理。
+```
+
+新增文件：
+
+```text
+frontend/index.html
+frontend/styles.css
+frontend/app.js
+```
+
+后端路由更新：
+
+```text
+GET /                 返回前端页面
+GET /static/app.js    前端脚本
+GET /static/styles.css
+GET /prediction-files/<file> 访问后端预测可视化图片
+```
+
+前端功能：
+
+```text
+选择本地图片。
+调用 POST /predict。
+显示输入预览。
+显示后端生成的预测图。
+显示 puffin count、mean confidence、elapsed time、total detections。
+显示 puffin bounding boxes 表格。
+```
+
+验证：
+
+```text
+GET / -> 200
+GET /static/app.js -> 200
+GET /static/styles.css -> 200
+GET /health -> 200
+GET /model -> 200
+POST /predict smoke test -> count=3
+```
+
+使用方式：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\run_backend.ps1
+```
+
+然后打开：
+
+```text
+http://127.0.0.1:8000/
+```
+
+## 20. 浏览器截图与报告素材整理
+
+日期：
+
+```text
+2026-05-26
+```
+
+来源：
+
+```text
+R:\mlcv-labs\workspace\final-demo\temp
+```
+
+整理后位置：
+
+```text
+report_assets/browser_screenshots/
+```
+
+文件映射：
+
+```text
+127.0.0.1_8000_ (1).png -> 01_success_complex_23_targets.png
+127.0.0.1_8000_ (2).png -> 02_failure_case_001_drone_far_both_under_count.png
+127.0.0.1_8000_ (3).png -> 03_failure_case_002_drone_far_under_to_over.png
+127.0.0.1_8000_ (4).png -> 04_failure_case_003_near_overlap_both_under_count.png
+127.0.0.1_8000_ (5).png -> 05_failure_case_004_single_closeup_yolo11n_over_count.png
+127.0.0.1_8000_ (6).png -> 06_case_005_near_overlap_yolo11n_success.png
+```
+
+说明：
+
+```text
+01 是复杂场景成功样例，23 个目标全部正确识别。
+02-06 对应此前整理的 case_001 到 case_005。
+06 对应 case_005，是成功示例，因为最终采用的 YOLO11n 模型全部检出。
+```
+
+仓库整理：
+
+```text
+temp/ 已删除并加入 .gitignore。
+Ultralytics 自动下载到项目根目录的 yolo11n.pt 和 yolo26n.pt 已移动到 ignored 的 weights/pretrained/。
+```

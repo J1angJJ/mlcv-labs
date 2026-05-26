@@ -6,6 +6,16 @@ from pathlib import Path
 from ultralytics import YOLO
 
 
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+def resolve_path(path: str) -> Path:
+    value = Path(path)
+    if value.is_absolute():
+        return value
+    return (PROJECT_ROOT / value).resolve()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train an Ultralytics YOLO detection model.")
     parser.add_argument("--model", default="yolo26n.pt", help="Pretrained model checkpoint or model yaml.")
@@ -17,8 +27,8 @@ def main() -> None:
 
     model = YOLO(args.model)
     model.train(
-        data=str(Path(args.data)),
-        project=str(Path(args.project)),
+        data=str(resolve_path(args.data)),
+        project=str(resolve_path(args.project)),
         name=args.name,
         exist_ok=args.exist_ok,
     )

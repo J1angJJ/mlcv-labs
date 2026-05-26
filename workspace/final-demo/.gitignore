@@ -6,6 +6,7 @@ weights/
 models/
 checkpoints/
 tmp/
+temp/
 
 # Python cache
 __pycache__/
@@ -20,3 +21,7 @@ __pycache__/
 *.tflite
 *.mlpackage
 
+# Curated report screenshots are intentionally versioned.
+!report_assets/
+!report_assets/browser_screenshots/
+!report_assets/browser_screenshots/*.png
