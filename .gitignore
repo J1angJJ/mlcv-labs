@@ -44,6 +44,15 @@ runs/
 checkpoints/
 wandb/
 mlruns/
+*.bmp
+*.gif
+*.heic
+*.jpeg
+*.jpg
+*.png
+*.tif
+*.tiff
+*.webp
 *.ckpt
 *.pth
 *.pt
