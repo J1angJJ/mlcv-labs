@@ -1,0 +1,11 @@
+image_id,group,source,image_path
+case_001_original,case_001_both_under_count,original,R:\mlcv-labs\workspace\final-demo\outputs\failure_cases\exp001_vs_exp002\case_001_both_under_count\original.jpg
+case_001_yolo11n,case_001_both_under_count,yolo11n_pred,R:\mlcv-labs\workspace\final-demo\outputs\failure_cases\exp001_vs_exp002\case_001_both_under_count\exp002_yolo11n_pred.jpg
+case_002_original,case_002_under_to_over,original,R:\mlcv-labs\workspace\final-demo\outputs\failure_cases\exp001_vs_exp002\case_002_under_to_over\original.jpg
+case_002_yolo11n,case_002_under_to_over,yolo11n_pred,R:\mlcv-labs\workspace\final-demo\outputs\failure_cases\exp001_vs_exp002\case_002_under_to_over\exp002_yolo11n_pred.jpg
+case_003_original,case_003_both_under_count,original,R:\mlcv-labs\workspace\final-demo\outputs\failure_cases\exp001_vs_exp002\case_003_both_under_count\original.jpg
+case_003_yolo11n,case_003_both_under_count,yolo11n_pred,R:\mlcv-labs\workspace\final-demo\outputs\failure_cases\exp001_vs_exp002\case_003_both_under_count\exp002_yolo11n_pred.jpg
+case_004_original,case_004_exp002_new_error,original,R:\mlcv-labs\workspace\final-demo\outputs\failure_cases\exp001_vs_exp002\case_004_exp002_new_error\original.jpg
+case_004_yolo11n,case_004_exp002_new_error,yolo11n_pred,R:\mlcv-labs\workspace\final-demo\outputs\failure_cases\exp001_vs_exp002\case_004_exp002_new_error\exp002_yolo11n_pred.jpg
+case_005_original,case_005_exp002_fixed_exp001_error,original,R:\mlcv-labs\workspace\final-demo\outputs\failure_cases\exp001_vs_exp002\case_005_exp002_fixed_exp001_error\original.jpg
+case_005_yolo11n,case_005_exp002_fixed_exp001_error,yolo11n_pred,R:\mlcv-labs\workspace\final-demo\outputs\failure_cases\exp001_vs_exp002\case_005_exp002_fixed_exp001_error\exp002_yolo11n_pred.jpg

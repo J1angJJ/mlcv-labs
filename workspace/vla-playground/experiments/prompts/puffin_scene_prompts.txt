@@ -1,0 +1,11 @@
+# One prompt per line.
+# These prompts are intentionally scene-level, not only class names.
+
+a group of puffins on a rocky cliff
+a distant drone photo of tiny seabirds
+a close-up photo of a single puffin
+overlapping puffins in a group
+a rocky cliff with no visible birds
+a browser screenshot of an object detection result
+a photo of seabirds on a cliff
+a photo of rocks
