@@ -143,3 +143,124 @@ similarity_matrix.csv 用来查看全部两两相似度。
 如果同一 case 的 original 和 yolo11n_pred 互为近邻，说明检测框可视化没有完全破坏图像语义；
 如果预测图更接近其他 prediction 图，说明方框和标注样式本身成为了强视觉特征。
 ```
+
+## Embedding plot
+
+用途：
+
+```text
+读取 image-image retrieval 阶段保存的 CLIP image embeddings，把高维向量投影到二维并生成散点图。
+当前默认使用 PCA，因为样本数只有 10 张，PCA 比 t-SNE 更稳定、可解释。
+```
+
+推荐运行：
+
+```cmd
+R:\mlcv-labs\workspace\vla-playground\run_clip_embedding_plot.cmd
+```
+
+输出：
+
+```text
+outputs\clip_embedding_plot\pca_points.csv
+outputs\clip_embedding_plot\pca_plot.png
+```
+
+可选：
+
+```cmd
+cd /d R:\mlcv-labs\workspace\vla-playground
+C:\Users\JJ406\.conda\envs\cv-train\python.exe experiments\visualize_clip_embeddings.py --method tsne --perplexity 3
+```
+
+说明：
+
+```text
+PCA 是线性降维，适合先看整体方向和相对距离。
+t-SNE 是非线性邻域可视化，适合样本更多时观察局部簇结构；样本很少时不宜过度解读。
+```
+
+## Probe
+
+用途：
+
+```text
+在冻结的 CLIP image embeddings 上训练很小的分类器，检查 embedding 是否包含某类可分信息。
+当前是教学实验，不是正式评估，因为样本只有 10 张。
+```
+
+任务：
+
+```text
+source_style: original vs yolo11n_pred
+scene_distance: far_scene vs close_scene
+```
+
+推荐运行：
+
+```cmd
+R:\mlcv-labs\workspace\vla-playground\run_clip_probe.cmd
+```
+
+输出：
+
+```text
+outputs\clip_probe\summary.csv
+outputs\clip_probe\source_style_predictions.csv
+outputs\clip_probe\scene_distance_predictions.csv
+```
+
+说明：
+
+```text
+KNN probe 不训练参数，只看最近邻类别。
+Linear probe 使用 logistic regression，只训练一个线性分类边界。
+如果简单 probe 能分开，说明 CLIP embedding 原本就包含相应属性的信息。
+```
+
+## Annotation manifest
+
+用途：
+
+```text
+从 final-demo 的 Seabirds.v6i.yolo26 数据集中分层抽样 300 张原图，生成后续 CLIP probe、linear classifier、LoRA 或 VLA toy task 可复用的多字段 manifest。
+```
+
+生成命令：
+
+```cmd
+R:\mlcv-labs\workspace\vla-playground\run_build_annotation_manifest.cmd
+```
+
+输出：
+
+```text
+experiments\manifests\seabirds_annotation_300.csv
+experiments\annotation\annotate_seabirds_300.html
+```
+
+抽样策略：
+
+```text
+按 split 近似抽取 train 216、valid 48、test 36。
+每个 split 内优先按 puffin 标注框数量分层：none、single、few、group。
+不复制图片，只在 manifest 中记录原始图片路径和 YOLO label 路径。
+```
+
+标注方式：
+
+```text
+用浏览器打开 experiments\annotation\annotate_seabirds_300.html。
+逐张补充 distance、scene、difficulty、occlusion、text_prompt 等字段。
+页面会把草稿保存在浏览器 localStorage；完成后点击 Download CSV，得到 seabirds_annotation_300_annotated.csv。
+浏览器不能直接覆盖仓库里的 CSV，下载后需要手动替换或另存为新的 manifest。
+```
+
+字段说明：
+
+```text
+image_id/image_path/split/source/dataset/label_path: 样本来源。
+total_boxes/puffin_boxes/non_puffin_boxes/puffin_bin: 从 YOLO 标签自动统计。
+distance/scene/difficulty/occlusion/text_prompt/notes: 人工补充字段。
+contains_puffin/density/has_detection_overlay: 已给出初始值，可人工修正。
+```
