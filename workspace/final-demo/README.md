@@ -1,5 +1,11 @@
 # Puffin Counting Final
 
+## 当前状态
+
+本 demo 已完成课程 final 的主要工程闭环：开源数据集选择与审计、YOLO26n / YOLO11n 训练对比、计数评估、失败案例分析、FastAPI 后端、轻量前端和报告素材整理。最终原型默认使用 YOLO11n 权重进行后端推理，模型权重、训练输出、数据集和提交报告草稿均保留在本地并通过 `.gitignore` 排除。
+
+课程报告已基于本 demo 单独完成并提交，报告源文件和 PDF 位于本地 `submission/` 目录，该目录不进入 Git。
+
 本目录是课程 final 作业的工程工作区，目标是构建一个基于目标检测的 puffin 自动计数原型：用户上传图片，后端调用训练好的 YOLO 模型检测 puffin，并返回计数、检测框和可视化结果。
 
 当前项目包含数据集整理、模型训练与评估、失败案例分析、FastAPI 后端和轻量前端原型。详细实验过程记录见 `EXPERIMENT_LOG.md`；更细的内部工作笔记见 `README.internal.md`。

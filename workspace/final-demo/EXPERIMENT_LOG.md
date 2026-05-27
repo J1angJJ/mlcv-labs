@@ -1135,3 +1135,31 @@ report_assets/browser_screenshots/
 temp/ 已删除并加入 .gitignore。
 Ultralytics 自动下载到项目根目录的 yolo11n.pt 和 yolo26n.pt 已移动到 ignored 的 weights/pretrained/。
 ```
+
+## 21. 项目收尾与报告提交
+
+日期：
+```text
+2026-05-27
+```
+
+状态：
+```text
+课程 final 报告已完成并提交。
+工程 demo 进入阶段性收尾状态。
+```
+
+收尾说明：
+```text
+最终 demo 保留完整的本地工程链路：数据集审计、YOLO26n / YOLO11n 训练与对比、计数评估、失败案例整理、FastAPI 后端和轻量前端。
+后端默认使用 exp002_yolo11n_baseline 的 best.pt 作为推理权重。
+data/、runs/、outputs/、weights/、submission/ 均为本地工作产物，不提交到 Git。
+report_assets/ 下的精选截图用于 README 和报告说明，可提交到 Git。
+```
+
+提交前关注：
+```text
+确认 .gitignore 继续忽略数据集、训练输出、模型权重和 submission/。
+确认 README.md 面向 GitHub，EXPERIMENT_LOG.md 保留完整实验过程。
+所有 commit 仍需由用户确认后执行，push 由用户自行操作。
+```
