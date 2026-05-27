@@ -1,0 +1,23 @@
+# Local datasets and generated outputs
+data/
+outputs/
+models/
+weights/
+checkpoints/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Large model/export artifacts
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.bin
+*.engine
+
+# Temporary files
+tmp/
+temp/
