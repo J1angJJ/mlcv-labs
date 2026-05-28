@@ -699,3 +699,374 @@ R:\mlcv-labs\workspace\vla-playground\experiments\annotation\annotate_seabirds_3
 页面会把草稿保存到浏览器 localStorage。
 完成后点击 Download CSV，下载 seabirds_annotation_300_annotated.csv，再作为后续实验 manifest 使用。
 ```
+
+## 16. 300 张人工标注 manifest 接收
+
+日期：
+```text
+2026-05-28
+```
+
+来源文件：
+```text
+C:\Users\JJ406\Downloads\seabirds_annotation_300_annotated (1).csv
+```
+
+工作区副本：
+```text
+experiments/manifests/seabirds_annotation_300_labeled.csv
+```
+
+检查结果：
+```text
+rows = 300
+distance blank = 0
+scene blank = 0
+difficulty blank = 0
+contains_puffin blank = 0
+density blank = 0
+occlusion blank = 0
+has_detection_overlay blank = 0
+missing_images = 0
+missing_labels = 0
+```
+
+字段分布：
+```text
+distance: close 175, medium 87, far 38
+scene: rocky_cliff 147, mixed 97, grass 33, unknown 21, sky 1, sea 1
+difficulty: easy 186, hard 63, medium 51
+contains_puffin: yes 195, no 103, uncertain 2
+density: none 102, single 68, few 67, group 63
+occlusion: none 175, partial 53, heavy 38, unknown 34
+has_detection_overlay: no 299, yes 1
+```
+
+已修正项：
+```text
+1 条 contains_puffin 与 density 的冲突已修正：
+train_ddfg9m_jpg.rf.0fe59e4b2f96eea71ec625c243522fea
+contains_puffin = no, density = none, puffin_boxes = 0, total_boxes = 1
+```
+
+## 17. 300 张标注集 embedding/probe 脚本准备
+
+日期：
+```text
+2026-05-28
+```
+
+新增文件：
+```text
+experiments/extract_clip_embeddings.py
+experiments/probe_labeled_embeddings.py
+run_extract_labeled_embeddings.cmd
+run_probe_labeled_embeddings.cmd
+```
+
+输入 manifest：
+```text
+experiments/manifests/seabirds_annotation_300_labeled.csv
+```
+
+设计目标：
+```text
+第一步批量提取 300 张人工标注图片的 CLIP image embeddings，并保留完整 metadata。
+第二步在冻结 CLIP embedding 上做 KNN 和 linear probe，默认评估 distance、difficulty、contains_puffin、density、occlusion。
+```
+
+资源说明：
+```text
+run_extract_labeled_embeddings.cmd 会加载 OpenCLIP ViT-B-32 / openai 并对 300 张图片做推理，会短暂占用 GPU/CPU。
+run_probe_labeled_embeddings.cmd 只读取已保存的 embeddings.npy，计算量很小。
+```
+
+计划运行命令：
+```cmd
+R:\mlcv-labs\workspace\vla-playground\run_extract_labeled_embeddings.cmd
+R:\mlcv-labs\workspace\vla-playground\run_probe_labeled_embeddings.cmd
+```
+
+本次状态：
+```text
+脚本已通过 py_compile。
+尚未运行 embedding 提取，因为该步骤会占用本地计算资源。
+```
+
+## 18. 300 张标注集 embedding/probe 运行结果
+
+日期：
+```text
+2026-05-28
+```
+
+运行命令：
+```cmd
+R:\mlcv-labs\workspace\vla-playground\run_extract_labeled_embeddings.cmd
+R:\mlcv-labs\workspace\vla-playground\run_probe_labeled_embeddings.cmd
+```
+
+embedding 提取输出：
+```text
+outputs/clip_labeled_300_embeddings/embeddings.npy
+outputs/clip_labeled_300_embeddings/metadata.csv
+outputs/clip_labeled_300_embeddings/run_info.txt
+```
+
+运行配置：
+```text
+model = ViT-B-32
+pretrained = openai
+device = cuda
+batch_size = 32
+num_images = 300
+embedding_dim = 512
+```
+
+probe 输出：
+```text
+outputs/clip_labeled_300_probe/summary.csv
+outputs/clip_labeled_300_probe/<task>_predictions.csv
+```
+
+结果摘要：
+```text
+distance: KNN 0.8533, linear 0.8800
+difficulty: KNN 0.7067, linear 0.6667
+contains_puffin: KNN 0.8400, linear 0.9067
+density: KNN 0.7200, linear 0.7733
+occlusion: KNN 0.7313, linear 0.5821
+```
+
+观察：
+```text
+contains_puffin 和 distance 是当前最容易从冻结 CLIP embedding 中读出的属性。
+contains_puffin 的 linear probe 达到 0.9067，说明 puffin presence 在 CLIP 表征中具有较强线性可分性。
+distance 的 linear probe 达到 0.8800，说明远景/近景尺度差异在 embedding 中也很明显。
+density 表现中等，single 和 none 较容易，few/group 之间存在混淆，符合视觉上数量边界较模糊的情况。
+difficulty 和 occlusion 更弱，尤其 occlusion 的 linear probe 只有 0.5821，说明遮挡是更细粒度、更依赖人工判断的属性。
+```
+
+结论：
+```text
+300 张人工标注数据已经足够支撑一个更稳的冻结 CLIP 表征分析。
+下一步可以先做可视化和错误样例整理，而不是急着 LoRA：把 contains_puffin、distance、density 等标签投影到 PCA/t-SNE 图上，并抽查 probe 预测错误的图片。
+如果冻结 CLIP + linear probe 已经能较好解决某些属性，LoRA 应优先用于表现较弱且任务确实需要的属性，例如 density 或 occlusion。
+```
+
+## 19. 300 张标注集可视化与错误样例整理
+
+日期：
+```text
+2026-05-28
+```
+
+新增文件：
+```text
+experiments/visualize_labeled_embeddings.py
+experiments/build_probe_error_gallery.py
+run_visualize_labeled_embeddings.cmd
+run_probe_error_gallery.cmd
+```
+
+运行命令：
+```cmd
+R:\mlcv-labs\workspace\vla-playground\run_visualize_labeled_embeddings.cmd
+R:\mlcv-labs\workspace\vla-playground\run_probe_error_gallery.cmd
+```
+
+资源说明：
+```text
+本步骤只读取已保存的 embeddings.npy 和 probe prediction CSV。
+没有重新运行 OpenCLIP，不占用明显 GPU 资源。
+```
+
+PCA 可视化输出：
+```text
+outputs/clip_labeled_300_plots/pca_points.csv
+outputs/clip_labeled_300_plots/pca_by_distance.png
+outputs/clip_labeled_300_plots/pca_by_contains_puffin.png
+outputs/clip_labeled_300_plots/pca_by_density.png
+outputs/clip_labeled_300_plots/pca_by_difficulty.png
+outputs/clip_labeled_300_plots/pca_by_occlusion.png
+```
+
+错误样例 gallery：
+```text
+outputs/clip_labeled_300_probe/error_gallery.html
+linear probe errors = 86
+```
+
+下一步建议：
+```text
+优先人工查看 error_gallery.html。
+如果大量错误来自标注主观性或边界定义含糊，先修订标签规范。
+如果错误主要来自视觉上确实细粒度的 density/occlusion，则再考虑 small MLP 或 LoRA。
+```
+
+## 20. 自动色彩模式分析
+
+日期：
+```text
+2026-05-28
+```
+
+新增文件：
+```text
+experiments/analyze_color_mode.py
+run_analyze_color_mode.cmd
+```
+
+运行命令：
+```cmd
+R:\mlcv-labs\workspace\vla-playground\run_analyze_color_mode.cmd
+```
+
+输出：
+```text
+experiments/manifests/seabirds_annotation_300_labeled_color.csv
+outputs/color_mode_analysis/color_mode_summary.csv
+outputs/color_mode_analysis/probe_by_color_mode.csv
+```
+
+方法：
+```text
+用每张图片缩略图的 RGB 通道差异和平均饱和度估计 color_mode_auto。
+类别包括 color、grayscale、low_color。
+这一步不运行模型，只做轻量图像统计和已有 probe 结果分组。
+```
+
+色彩模式分布：
+```text
+color: 209
+grayscale: 45
+low_color: 46
+```
+
+linear probe 按色彩模式的表现：
+```text
+distance: color 0.9000, grayscale 0.8333, low_color 0.8462
+contains_puffin: color 0.9434, grayscale 0.6364, low_color 1.0000
+density: color 0.7391, grayscale 0.5455, low_color 1.0000
+difficulty: color 0.6842, grayscale 0.5556, low_color 0.6667
+occlusion: color 0.6098, grayscale 0.3846, low_color 0.6923
+```
+
+观察：
+```text
+自动色彩分析支持人工观察：黑白图片明显削弱 contains_puffin 和 density 的 probe 表现。
+contains_puffin 在 color 样本上达到 0.9434，但在 grayscale 样本上只有 0.6364。
+这说明 CLIP 对 puffin 的判断很可能依赖一部分颜色线索；当 puffin 的橙色喙、脚或脸部色块消失时，模型更容易与其他黑白海鸟混淆。
+low_color 组的样本数较少，部分任务分数很高，暂时不应过度解读。
+```
+
+结论：
+```text
+后续评估应把 color_mode_auto 作为重要分组变量。
+若进入 LoRA 或 small MLP，建议分别报告 all samples、color samples、grayscale samples 的结果。
+如果目标是提高真实鲁棒性，黑白/低色彩图像应作为一个明确的困难子集，而不是混在总体准确率里被平均掉。
+```
+
+## 21. 按色彩子集重新评估 probe
+
+日期：
+```text
+2026-05-28
+```
+
+新增文件：
+```text
+experiments/probe_labeled_embeddings_by_color.py
+run_probe_by_color.cmd
+```
+
+运行命令：
+```cmd
+R:\mlcv-labs\workspace\vla-playground\run_probe_by_color.cmd
+```
+
+输出：
+```text
+outputs/clip_labeled_300_probe_by_color/summary_by_color.csv
+outputs/clip_labeled_300_probe_by_color/<subset>_<task>_predictions.csv
+```
+
+方法说明：
+```text
+这一步与 probe_by_color_mode.csv 的含义不同。
+probe_by_color_mode.csv 是在全体 probe 的 held-out 测试结果中按 color_mode_auto 分组统计。
+本步骤则在 all、color、grayscale、low_color 每个子集内部重新划分训练/测试，并分别训练 KNN 和 linear probe。
+因此它回答的问题是：如果把某种色彩模式当作独立子域，冻结 CLIP embedding 在该子域内是否仍可读出标签。
+```
+
+linear probe 关键结果：
+```text
+all: contains_puffin 0.9067, density 0.7733, distance 0.8800, difficulty 0.6667, occlusion 0.5821
+color: contains_puffin 0.9615, density 0.7736, distance 0.9057, difficulty 0.7736, occlusion 0.6087
+grayscale: contains_puffin 0.9091, density 0.5000, distance 0.9167, difficulty 0.5833, occlusion 0.8000
+low_color: contains_puffin 0.9167, density 1.0000, difficulty 0.7500, occlusion 0.7500
+```
+
+观察：
+```text
+color 子集上的 contains_puffin、distance、difficulty 均比 all 更好，说明彩色图中 CLIP embedding 对这些属性更稳定。
+grayscale 子集内部的 contains_puffin 达到 0.9091，这说明黑白图并不是完全不可学习；它更像一个不同视觉域。
+但 grayscale 的 density 只有 0.5000，说明在没有颜色线索时，数量/密度相关判断仍然更困难。
+low_color 子集样本较少，部分类别分布不均，例如 distance 中 far 只有 1 个，因此部分结果不能过度解读。
+```
+
+结论：
+```text
+当前更合理的结论不是“黑白图必然失败”，而是“黑白图构成一个与彩色图不同的子域”。
+全体混合评估会暴露域差异；子域内重新训练/测试则显示 CLIP embedding 仍保留一部分可读结构。
+后续若做 small MLP 或 LoRA，应明确报告 all/color/grayscale 分组结果，并优先关注 grayscale density 和 overall occlusion。
+```
+
+## 22. CLIP 本地检索 playground
+
+日期：
+```text
+2026-05-28
+```
+
+新增文件：
+```text
+experiments/clip_retrieval_playground.py
+run_retrieve_text_examples.cmd
+run_retrieve_by_image_id.cmd
+```
+
+功能：
+```text
+基于 outputs/clip_labeled_300_embeddings 中已有的 300 张图片 embedding 做检索。
+支持 text query、external image query 和 indexed image_id query。
+检索结果导出为 CSV 和 HTML gallery。
+```
+
+资源说明：
+```text
+text query 和 external image query 会加载 OpenCLIP 模型并做一次轻量推理。
+image_id query 直接复用已有 embedding，不加载 OpenCLIP。
+```
+
+冒烟测试：
+```cmd
+R:\mlcv-labs\workspace\vla-playground\run_retrieve_by_image_id.cmd train_loader_jpeg.rf.8cf24c6b9f1309c46d3208605107334c
+```
+
+输出：
+```text
+outputs/clip_retrieval/image_id_train_loader_jpeg_rf_8cf24c6b9f1309c46d3208605107334c.csv
+outputs/clip_retrieval/image_id_train_loader_jpeg_rf_8cf24c6b9f1309c46d3208605107334c.html
+```
+
+结果：
+```text
+Top-1: train_loader_jpeg.rf.567827b846faee1732ed42355b29b732
+similarity: 0.98051131
+```
+
+可运行文本检索示例：
+```cmd
+R:\mlcv-labs\workspace\vla-playground\run_retrieve_text_examples.cmd
+```
