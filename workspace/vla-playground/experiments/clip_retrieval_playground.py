@@ -31,6 +31,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--index-dir", type=Path, default=DEFAULT_INDEX_DIR, help="Directory with embeddings.npy and metadata.csv.")
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR, help="Output directory.")
     parser.add_argument("--top-k", type=int, default=12, help="Number of retrieval results.")
+    parser.add_argument(
+        "--filter",
+        action="append",
+        default=[],
+        help="Metadata filter in key=value form. Can be repeated, e.g. --filter scene=grass --filter distance=far.",
+    )
     parser.add_argument("--model", default="ViT-B-32", help="open_clip model name.")
     parser.add_argument("--pretrained", default="openai", help="open_clip pretrained tag.")
     parser.add_argument("--device", choices=["auto", "cuda", "cpu"], default="auto", help="Inference device.")
@@ -70,6 +76,27 @@ def load_index(index_dir: Path) -> tuple[np.ndarray, list[dict[str, str]]]:
     return embeddings, metadata
 
 
+def parse_filters(filters: list[str]) -> dict[str, str]:
+    parsed: dict[str, str] = {}
+    for item in filters:
+        if "=" not in item:
+            raise ValueError(f"Filter must use key=value form: {item}")
+        key, value = item.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if not key or not value:
+            raise ValueError(f"Filter must use non-empty key=value form: {item}")
+        parsed[key] = value
+    return parsed
+
+
+def row_matches_filters(row: dict[str, str], filters: dict[str, str]) -> bool:
+    for key, expected in filters.items():
+        if row.get(key, "") != expected:
+            return False
+    return True
+
+
 def load_model(model_name: str, pretrained: str, device: torch.device):
     model, _, preprocess = open_clip.create_model_and_transforms(model_name, pretrained=pretrained, device=device)
     tokenizer = open_clip.get_tokenizer(model_name)
@@ -101,13 +128,23 @@ def vector_from_query_id(embeddings: np.ndarray, metadata: list[dict[str, str]],
     raise ValueError(f"query-id not found in metadata: {image_id}")
 
 
-def retrieve(query_vector: np.ndarray, embeddings: np.ndarray, metadata: list[dict[str, str]], top_k: int, skip_id: str = ""):
+def retrieve(
+    query_vector: np.ndarray,
+    embeddings: np.ndarray,
+    metadata: list[dict[str, str]],
+    top_k: int,
+    skip_id: str = "",
+    filters: dict[str, str] | None = None,
+):
+    filters = filters or {}
     similarities = embeddings @ query_vector
     order = np.argsort(-similarities)
     results = []
     for index in order:
         row = metadata[index]
         if skip_id and row.get("image_id") == skip_id:
+            continue
+        if not row_matches_filters(row, filters):
             continue
         result = dict(row)
         result["rank"] = str(len(results) + 1)
@@ -190,6 +227,7 @@ def main() -> None:
     output_dir = args.output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     embeddings, metadata = load_index(index_dir)
+    filters = parse_filters(args.filter)
 
     skip_id = ""
     if args.query_id:
@@ -210,13 +248,15 @@ def main() -> None:
             title = f"image query: {query_path.name}"
             output_stem = args.name or safe_stem(f"image_{query_path.stem}")
 
-    results = retrieve(query_vector, embeddings, metadata, args.top_k, skip_id=skip_id)
+    results = retrieve(query_vector, embeddings, metadata, args.top_k, skip_id=skip_id, filters=filters)
     csv_path = output_dir / f"{output_stem}.csv"
     html_path = output_dir / f"{output_stem}.html"
     write_results(results, csv_path)
     write_gallery(results, title, html_path)
 
     print(f"Query: {title}")
+    if filters:
+        print(f"Filters: {filters}")
     print(f"Results: {csv_path}")
     print(f"Gallery: {html_path}")
     if results:

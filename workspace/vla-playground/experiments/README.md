@@ -468,3 +468,22 @@ C:\Users\JJ406\.conda\envs\cv-train\python.exe experiments\clip_retrieval_playgr
 outputs\clip_retrieval\<query_name>.csv
 outputs\clip_retrieval\<query_name>.html
 ```
+
+结构化过滤：
+
+```cmd
+R:\mlcv-labs\workspace\vla-playground\run_merge_embedding_metadata_color.cmd
+R:\mlcv-labs\workspace\vla-playground\run_retrieve_filtered_examples.cmd
+```
+
+说明：
+
+```text
+run_merge_embedding_metadata_color.cmd 会生成带 color_mode_auto 字段的新检索索引：
+outputs\clip_labeled_300_embeddings_with_color
+
+run_retrieve_filtered_examples.cmd 演示 metadata filter + CLIP ranking：
+--filter color_mode_auto=grayscale
+--filter scene=grass
+--filter distance=far --filter difficulty=hard
+```

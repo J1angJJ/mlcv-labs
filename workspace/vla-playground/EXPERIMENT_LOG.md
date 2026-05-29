@@ -1070,3 +1070,110 @@ similarity: 0.98051131
 ```cmd
 R:\mlcv-labs\workspace\vla-playground\run_retrieve_text_examples.cmd
 ```
+
+## 23. 结构化过滤 + CLIP 检索
+
+日期：
+```text
+2026-05-29
+```
+
+新增/修改文件：
+```text
+experiments/clip_retrieval_playground.py
+experiments/merge_embedding_metadata_color.py
+run_merge_embedding_metadata_color.cmd
+run_retrieve_filtered_examples.cmd
+```
+
+目标：
+```text
+把纯文本向量检索升级为 metadata filter + CLIP ranking。
+先用结构化标签筛候选集，例如 color_mode_auto=grayscale 或 scene=grass，再在候选集内部按 CLIP similarity 排序。
+```
+
+新增参数：
+```text
+clip_retrieval_playground.py 支持重复传入 --filter key=value。
+多个 filter 之间是 AND 关系。
+```
+
+新索引：
+```text
+outputs/clip_labeled_300_embeddings_with_color
+```
+
+说明：
+```text
+该索引复用原有 embeddings.npy，但 metadata.csv 替换为 seabirds_annotation_300_labeled_color.csv。
+因此可以在检索时使用 color_mode_auto、color_channel_delta、color_saturation 等字段。
+```
+
+冒烟测试：
+```cmd
+C:\Users\JJ406\.conda\envs\cv-train\python.exe experiments\clip_retrieval_playground.py --query-id train_loader_jpeg.rf.8cf24c6b9f1309c46d3208605107334c --index-dir outputs\clip_labeled_300_embeddings_with_color --filter scene=grass --top-k 5 --name smoke_filter_grass
+```
+
+结果：
+```text
+Filters: {'scene': 'grass'}
+Top-1: train_loader_jpeg.rf.567827b846faee1732ed42355b29b732
+similarity: 0.98051131
+```
+
+可运行示例：
+```cmd
+R:\mlcv-labs\workspace\vla-playground\run_retrieve_filtered_examples.cmd
+```
+
+## 24. 结构化过滤检索运行结果
+
+日期：
+```text
+2026-05-29
+```
+
+运行命令：
+```cmd
+R:\mlcv-labs\workspace\vla-playground\run_retrieve_filtered_examples.cmd
+```
+
+输出：
+```text
+outputs/clip_retrieval/filtered_grayscale_seabirds.csv
+outputs/clip_retrieval/filtered_grayscale_seabirds.html
+outputs/clip_retrieval/filtered_grass_puffins.csv
+outputs/clip_retrieval/filtered_grass_puffins.html
+outputs/clip_retrieval/filtered_far_hard_rocky_birds.csv
+outputs/clip_retrieval/filtered_far_hard_rocky_birds.html
+```
+
+Top-1：
+```text
+filtered_grayscale_seabirds:
+train_puffin_trio_with_some_space_stephen_kress_7-2-15_jpeg.rf.d9ddfb006ba250ac19075459d23179eb
+similarity = 0.29723883
+
+filtered_grass_puffins:
+valid_83008_jpeg.rf.9592b079c1ff8233f17d8de2310fcfd8
+similarity = 0.35027698
+
+filtered_far_hard_rocky_birds:
+train_59d7cef2-9442-43db-b104-c27acf09220d_jpeg.rf.4426827ea5dd904f0eb92ce7c4eeeffb
+similarity = 0.32120922
+```
+
+观察：
+```text
+结构化过滤显著提高了检索可控性。
+filtered_grayscale_seabirds 的 Top-K 均满足 color_mode_auto=grayscale，虽然 text-image similarity 分数整体较低，但候选域正确。
+filtered_grass_puffins 的 Top-K 均来自 scene=grass，并且多为 puffin 样本，比纯文本 "puffins on grass" 更稳定。
+filtered_far_hard_rocky_birds 的 Top-K 满足 distance=far 且 difficulty=hard，结果集中出现大量 DJI/远景岩壁样本，符合任务预期。
+```
+
+结论：
+```text
+metadata filter + CLIP ranking 比单纯 prompt 更适合这个小型本地检索系统。
+结构化标签负责硬约束，CLIP similarity 负责在候选集内排序。
+这也是后续 VLM/VLA toy task 的一个实用入口：先用结构化状态缩小候选，再用视觉-语言 embedding 处理语义排序。
+```
